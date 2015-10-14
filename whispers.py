@@ -30,6 +30,11 @@ def main(args):
 
     import threading
 
+    if options.profile:
+        import yappi
+        yappi.set_clock_type('cpu')
+        yappi.start(builtins=True, profile_threads=True)
+
     leftmost = queue.Queue()
     left = leftmost
     for i in _range(options.whispers):
@@ -46,6 +51,11 @@ def main(args):
         n = leftmost.get()
         assert n == options.whispers + 1
 
+    if options.profile:
+        yappi.stop()
+        stats = yappi.get_func_stats()
+        stats.save(options.profile, 'pstat')
+
 
 def parse_args(args):
     parser = optparse.OptionParser(usage="whispers [options]")
@@ -55,6 +65,8 @@ def parse_args(args):
                       help="number of jobs")
     parser.add_option("-m", "--monkeypatch", dest="monkeypatch",
                       help="monkeypatch type (native, cthreading, pthreading)")
+    parser.add_option("-p", "--profile", dest="profile",
+                      help="create profile (requires yappi 0.93)")
     parser.set_defaults(whispers=200, jobs=5000, monkeypatch=None)
     return parser.parse_args(args)
 
