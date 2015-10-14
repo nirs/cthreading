@@ -9,7 +9,8 @@ from distutils.core import setup, Extension
 setup(
     author="Nir Soffer",
     author_email="nsoffer@redhat.com",
-    description="Reimplementation of threading syncronization primitives",
+    description=("C implementation of Python 2 threading syncronization "
+                 "primitives"),
     ext_modules=[
         Extension(
             name="cthreading._cthreading",
@@ -20,6 +21,6 @@ setup(
     name="cthreading",
     platforms=["Linux"],
     packages=["cthreading"],
-    url="?",
+    url="https://github.com/nirs/cthreading",
     version="0.1",
 )

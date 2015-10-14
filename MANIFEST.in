@@ -3,3 +3,4 @@ include Makefile
 include *.in
 include *.ini
 include *.py
+include profile-stats
