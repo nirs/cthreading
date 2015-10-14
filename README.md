@@ -21,10 +21,16 @@ pip install yappi==0.93
 dnf install python-test
 ```
 
-Building and running all the tests:
+Building and running the quick tests:
 
 ```
 make
+```
+
+Before submiting patches, run the entire Python regression tests suite:
+
+```
+make regrtest
 ```
 
 Check the `Makefile` for more info.
