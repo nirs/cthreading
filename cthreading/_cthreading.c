@@ -40,8 +40,12 @@ set_error_info(int err, const char *msg, const char *file, int line)
 #define set_error(err, msg) set_error_info(err, msg, __FILE__, __LINE__)
 
 /* Compute deadline using current system time and timeout in seconds.
- * Return -1 if deadline would overflow. */
-static int
+ *
+ * Python 2.7 multiprocessing tests uses wait(1e100). This does not make sense,
+ * but we like to be compatible with existing Python 2.7 code, so we will
+ * truncate extreme timeouts to INT_MAX. Please open a bug if you tried to wait
+ * after year 292471210647 and it did not work for you. */
+static void
 deadline_from_timeout(double timeout, struct timespec *deadline)
 {
 #define USEC_PER_SEC    1000000
@@ -53,24 +57,21 @@ deadline_from_timeout(double timeout, struct timespec *deadline)
 
     gettimeofday(&tv, NULL);
 
-    if (tv.tv_sec > INT_MAX - timeout_sec)
-        return -1; /* Will overflow */
+    if (tv.tv_sec <= INT_MAX - timeout_sec)
+        tv.tv_sec += timeout_sec;
+    else
+        tv.tv_sec = INT_MAX;
 
-    tv.tv_sec += timeout_sec;
     tv.tv_usec += timeout_usec;
 
     if (tv.tv_usec > 1000000) {
-        if (tv.tv_sec > INT_MAX - 1)
-            return -1; /* Will overflow */
-
-        tv.tv_sec += 1;
         tv.tv_usec -= 1000000;
+        if (tv.tv_sec <= INT_MAX - 1)
+            tv.tv_sec += 1;
     }
 
     deadline->tv_sec = tv.tv_sec;
     deadline->tv_nsec = tv.tv_usec * NSEC_PER_USEC;
-
-    return 0;
 }
 
 /* Parse acquire args (blocking=True, timeout=-1)) and return the timeout by
@@ -154,13 +155,8 @@ acquire_lock(sem_t *sem, double timeout)
     int err;
     struct timespec deadline;
 
-    if (timeout > 0) {
-        if (deadline_from_timeout(timeout, &deadline)) {
-            PyErr_SetString(PyExc_OverflowError,
-                            "timeout value is too large");
-            return ACQUIRE_ERROR;
-        }
-    }
+    if (timeout > 0)
+        deadline_from_timeout(timeout, &deadline);
 
     /* First try non-blocking acquire without releasing the GIL. If this fails
      * and we have a timeout, release the GIL and block until we get the lock

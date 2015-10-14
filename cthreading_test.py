@@ -475,7 +475,7 @@ def test_cond_wait_notify(condtype):
         t.join()
 
 @pytest.mark.timeout(2, method='thread')
-@pytest.mark.parametrize("timeout", [None, 0.9, 1.0])
+@pytest.mark.parametrize("timeout", [None, 0.9, 1.0, 1e100, sys.maxint])
 @pytest.mark.parametrize("condtype", [Condition, RCondition])
 def test_cond_wait_notify_timeout(condtype, timeout):
     cond = condtype()
