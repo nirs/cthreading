@@ -4,3 +4,4 @@ dist/
 *.so
 *.pyc
 MANIFEST
+.cache
