@@ -1,4 +1,4 @@
-include README LICENSE MANIFEST TODO
+include README.md LICENSE MANIFEST TODO
 include Makefile
 include *.in
 include *.ini
