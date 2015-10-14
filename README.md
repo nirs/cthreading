@@ -1,7 +1,7 @@
 # cthreading
 
 cthreading implements Python 2 Lock, RLock, and Condition in C.  Like
-pthreading <https://github.com/oVirt/pthreading>, without the undefined
+[pthreading](https://github.com/oVirt/pthreading), without the undefined
 behavior.
 
 ## Usage
@@ -27,4 +27,4 @@ Building and running all the tests:
 make
 ```
 
-Check the Makefile for more info.
+Check the `Makefile` for more info.
