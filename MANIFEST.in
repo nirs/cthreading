@@ -1,0 +1,5 @@
+include README LICENSE MANIFEST TODO
+include Makefile
+include *.in
+include *.ini
+include *.py
