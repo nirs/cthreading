@@ -11,6 +11,13 @@ import cthreading
 cthreading.monkeypatch()
 ```
 
+## Platforms
+
+Currently tested on:
+
+- Fedora 22
+- Ubuntu 12.04 Server (python regression tests not available)
+
 ## Hacking
 
 Installing development packages:
