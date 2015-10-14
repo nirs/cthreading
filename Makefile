@@ -4,7 +4,7 @@
 # modify, copy, or redistribute it subject to the terms and conditions
 # of the GNU General Public License v2 or (at your option) any later version.
 
-default: test regrtest
+default: test regrtest-threading
 
 .PHONY: build
 build:
@@ -14,9 +14,13 @@ build:
 test: build
 	py.test
 
+.PHONY: regrtest-threading
+regrtest-threading: build
+	python regrtest.py -v test_threading
+
 .PHONY: regrtest
 regrtest: build
-	python regrtest.py -v test_threading
+	python regrtest.py
 
 .PHONY: dist
 dist:
