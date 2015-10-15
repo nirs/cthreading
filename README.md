@@ -11,31 +11,37 @@ import cthreading
 cthreading.monkeypatch()
 ```
 
-## Platforms
+## Distributions
 
 Currently tested on:
 
 - Fedora 22
 - Ubuntu 12.04 Server (python regression tests not available)
+- Ubuntu 14.04 Server
 
 ## Hacking
 
-Installing development packages:
-
+For rpm based distributions:
 ```
-pip install pytest
-pip install yappi==0.93
-dnf install python-test
+yum install python-devel python-test
+```
+
+For deb based distributions:
+```
+apt-get install python-dev libpython2.7-testsuite
+```
+
+Installing Python packages:
+```
+pip install pytest pytest-timeout yappi==0.93
 ```
 
 Building and running the quick tests:
-
 ```
 make
 ```
 
-Before submiting patches, run the entire Python regression tests suite:
-
+Before submiting patches, run the Python regression tests suite:
 ```
 make regrtest
 ```
