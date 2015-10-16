@@ -47,7 +47,7 @@ Building and running the quick tests:
 make
 ```
 
-Before submiting patches, run the Python regression tests suite:
+Before submitting patches, run the Python regression tests suite:
 ```
 make regrtest
 ```
