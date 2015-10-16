@@ -15,11 +15,15 @@ cthreading.monkeypatch()
 
 ## Distributions
 
-Currently tested on:
+Tested on:
 
-- Fedora 22
-- Ubuntu 12.04 Server (python regression tests not available)
-- Ubuntu 14.04 Server
+- Fedora 22 / Python 2.7.10
+- RHEL 7.1 / Python 2.7.5
+- RHEL 6.7 / Python-2.6.6
+- Ubuntu 14.04 Server / Python 2.7.6
+- Ubuntu 12.04 Server / Python 2.7.3 (python regression tests not available)
+- Ubuntu 12.04 / Python 2.6.9 (Travis container)
+- Ubuntu 12.04 / Python 2.7.9 (Travis container)
 
 ## Hacking
 
