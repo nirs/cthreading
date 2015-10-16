@@ -183,7 +183,8 @@ def test_rlock_release_owned_by_other_thread(locktype):
 
     t = start_thread(own)
     try:
-        if not ready.wait(0.5):
+        ready.wait(0.5)
+        if not ready.is_set():
             raise RuntimeError("Timeout starting owner thread")
         pytest.raises(RuntimeError, lock.release)
     finally:
@@ -378,11 +379,13 @@ def test_common_acquire_interrupt(locktype):
     with handle_signal(signo, receive):
         holder = start_thread(hold)
         try:
-            if not holder_ready.wait(0.5):
+            holder_ready.wait(0.5)
+            if not holder_ready.is_set():
                 raise RuntimeError("Timeout starting holder thread")
             sender = start_thread(send)
             try:
-                if not sender_ready.wait(0.5):
+                sender_ready.wait(0.5)
+                if not sender_ready.is_set():
                     raise RuntimeError("Timeout starting sender thread")
                 # Will succeed although underlying sem_wait interrupted by
                 # signal.
@@ -419,7 +422,8 @@ def test_common_is_owned_by_other(locktype):
 
     t = start_thread(own)
     try:
-        if not ready.wait(0.5):
+        ready.wait(0.5)
+        if not ready.is_set():
             raise RuntimeError("Timeout starting owner thread")
         assert not lock._is_owned()
     finally:
