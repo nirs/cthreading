@@ -6,10 +6,10 @@ behavior or the overhead of pure Python and ctypes.
 
 [![Build Status](https://travis-ci.org/nirs/cthreading.svg)](https://travis-ci.org/nirs/cthreading)
 
-## Preformance
+## Performance
 
 cthreading eliminates the overhead of threading.RLock and threading.Condition
-which are implemented in pure Python in Python 2. In particualr
+which are implemented in pure Python in Python 2. In particular
 threading.Condition is implemented using polling. In Python 3
 threading.Condition is implemented without polling; cthreading implements
 similar design in C.
@@ -37,14 +37,14 @@ sys     0m17.022s
 ```
 
 Your application is unlikely to have similar workload; do not expect this
-improvment.
+improvement.
 
 For more info see https://github.com/nirs/cthreading/wiki/performance.
 
 ## Usage
 
 Import cthreading before any other module and monkeypatch the thread and
-threading modules. From this point, threaing.Lock, threading.RLock and
+threading modules. From this point, threading.Lock, threading.RLock and
 threading.Condition are using cthreading.
 
 ```python
