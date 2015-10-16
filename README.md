@@ -42,6 +42,10 @@ For more info see https://github.com/nirs/cthreading/wiki/performance.
 
 ## Usage
 
+Import cthreading before any other module and monkeypatch the thread and
+threading modules. From this point, threaing.Lock, threading.RLock and
+threading.Condition are using cthreading.
+
 ```python
 import cthreading
 cthreading.monkeypatch()
