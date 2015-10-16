@@ -2,9 +2,43 @@
 
 cthreading implements Python 2 Lock, RLock, and Condition in C.  Like
 [pthreading](https://github.com/oVirt/pthreading), without the undefined
-behavior.
+behavior or the overhead of pure Python and ctypes.
 
 [![Build Status](https://travis-ci.org/nirs/cthreading.svg)](https://travis-ci.org/nirs/cthreading)
+
+## Preformance
+
+cthreading eliminates the overhead of threading.RLock and threading.Condition
+which are implemented in pure Python in Python 2. In particualr threading.Condition
+is implemented using polling. In Python 3 threading.Condition is implemented
+without polling; cthreading implements similar design in C.
+
+```
+$ time python whispers.py -m cthreading
+real	  0m2.664s
+user	  0m2.965s
+sys     0m0.808s
+
+$ time python3 whispers.py
+real	  0m9.664s
+user	  0m8.949s
+sys     0m1.812s
+
+$ time python whispers.py 
+real	  0m14.914s
+user	  0m16.986s
+sys     0m12.690s
+
+$ time python whispers.py -m pthreading
+real	  0m20.169s
+user	  0m23.062s
+sys     0m17.022s
+```
+
+Your application is unlikely to have similar workload; do not expect this
+improvment.
+
+For more info see https://github.com/nirs/cthreading/wiki/performance.
 
 ## Usage
 
