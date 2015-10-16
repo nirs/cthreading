@@ -368,13 +368,13 @@ Lock_acquire_restore(Lock *self, PyObject *args)
 
 static PyMethodDef Lock_methods[] = {
     {"acquire", (PyCFunction)Lock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)Lock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
     {"release", (PyCFunction)Lock_release, METH_VARARGS, NULL},
+    {"__exit__", (PyCFunction)Lock_release, METH_VARARGS, NULL},
     {"locked", (PyCFunction)Lock_locked, METH_NOARGS, NULL},
     {"_is_owned", (PyCFunction)Lock_is_owned, METH_NOARGS, NULL},
     {"_release_save", (PyCFunction)Lock_release_save, METH_NOARGS, NULL},
     {"_acquire_restore", (PyCFunction)Lock_acquire_restore, METH_VARARGS, NULL},
-    {"__enter__", (PyCFunction)Lock_acquire, METH_VARARGS, NULL},
-    {"__exit__", (PyCFunction)Lock_release, METH_VARARGS, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -595,12 +595,12 @@ RLock_acquire_restore(RLock *self, PyObject *args)
 
 static PyMethodDef RLock_methods[] = {
     {"acquire", (PyCFunction)RLock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)RLock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
     {"release", (PyCFunction)RLock_release, METH_VARARGS, NULL},
+    {"__exit__", (PyCFunction)RLock_release, METH_VARARGS, NULL},
     {"_is_owned", (PyCFunction)RLock_is_owned, METH_NOARGS, NULL},
     {"_release_save", (PyCFunction)RLock_release_save, METH_NOARGS, NULL},
     {"_acquire_restore", (PyCFunction)RLock_acquire_restore, METH_VARARGS, NULL},
-    {"__enter__", (PyCFunction)RLock_acquire, METH_VARARGS, NULL},
-    {"__exit__", (PyCFunction)RLock_release, METH_VARARGS, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -949,8 +949,8 @@ Condition_is_owned(Condition *self)
 
 static PyMethodDef Condition_methods[] = {
     {"acquire", (PyCFunction)Condition_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)Condition_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
     {"release", (PyCFunction)Condition_release, METH_VARARGS, NULL},
-    {"__enter__", (PyCFunction)Condition_acquire, METH_VARARGS, NULL},
     {"__exit__", (PyCFunction)Condition_release, METH_VARARGS, NULL},
     {"wait", (PyCFunction)Condition_wait, METH_VARARGS | METH_KEYWORDS, NULL},
     {"notify", (PyCFunction)Condition_notify, METH_VARARGS, NULL},
