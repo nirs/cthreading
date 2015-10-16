@@ -4,6 +4,8 @@ cthreading implements Python 2 Lock, RLock, and Condition in C.  Like
 [pthreading](https://github.com/oVirt/pthreading), without the undefined
 behavior.
 
+[![Build Status](https://travis-ci.org/nirs/cthreading.svg)](https://travis-ci.org/nirs/cthreading)
+
 ## Usage
 
 ```python
