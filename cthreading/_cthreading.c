@@ -646,7 +646,9 @@ static PyTypeObject RLockType = {
     RLock_new,                  /* tp_new */
 };
 
-/* Condition */
+/* waitq */
+
+#define WAITER_REMOVED ((struct waiter *) -1)
 
 struct waiter {
     sem_t sem;
@@ -654,13 +656,62 @@ struct waiter {
     struct waiter *prev;
 };
 
-#define WAITER_REMOVED ((struct waiter *) -1)
-
 struct waitq {
     struct waiter *first;
     struct waiter *last;
     int count;
 };
+
+static int
+waitq_append(struct waitq *waitq, struct waiter *waiter)
+{
+    /* Initialize in blocked state */
+    if (sem_init(&waiter->sem, 0, 0) != 0) {
+        set_error(errno, "sem_init");
+        return -1;
+    }
+
+    waiter->next = NULL;
+    waiter->prev = waitq->last;
+
+    if (waitq->last)
+        waitq->last->next = waiter;
+    else
+        waitq->first = waiter;
+
+    waitq->last = waiter;
+
+    waitq->count++;
+
+    return 0;
+}
+
+static void
+waitq_remove(struct waitq *waitq, struct waiter *waiter)
+{
+    if (waiter->next == WAITER_REMOVED || waiter->prev == WAITER_REMOVED)
+        return;
+
+    if (waiter->prev)
+        waiter->prev->next = waiter->next;
+    else
+        waitq->first = waiter->next;
+
+    if (waiter->next)
+        waiter->next->prev = waiter->prev;
+    else
+        waitq->last = waiter->prev;
+
+    waitq->count--;
+    assert(waitq->count >= 0);
+
+    sem_destroy(&waiter->sem);
+
+    waiter->prev = WAITER_REMOVED;
+    waiter->next = WAITER_REMOVED;
+}
+
+/* Condition */
 
 typedef struct {
     PyObject_HEAD
@@ -763,55 +814,6 @@ Condition_dealloc(Condition* self)
     PyObject_Del(self);
 }
 
-static int
-Condition_append_waiter(Condition *self, struct waiter *waiter)
-{
-    /* Initialize in blocked state */
-    if (sem_init(&waiter->sem, 0, 0) != 0) {
-        set_error(errno, "sem_init");
-        return -1;
-    }
-
-    waiter->next = NULL;
-    waiter->prev = self->waiters.last;
-
-    if (self->waiters.last)
-        self->waiters.last->next = waiter;
-    else
-        self->waiters.first = waiter;
-
-    self->waiters.last = waiter;
-
-    self->waiters.count++;
-
-    return 0;
-}
-
-static void
-Condition_remove_waiter(Condition *self, struct waiter *waiter)
-{
-    if (waiter->next == WAITER_REMOVED || waiter->prev == WAITER_REMOVED)
-        return;
-
-    if (waiter->prev)
-        waiter->prev->next = waiter->next;
-    else
-        self->waiters.first = waiter->next;
-
-    if (waiter->next)
-        waiter->next->prev = waiter->prev;
-    else
-        self->waiters.last = waiter->prev;
-
-    self->waiters.count--;
-    assert(self->waiters.count >= 0);
-
-    sem_destroy(&waiter->sem);
-
-    waiter->prev = WAITER_REMOVED;
-    waiter->next = WAITER_REMOVED;
-}
-
 static PyObject *
 Condition_release_save(Condition *self)
 {
@@ -875,7 +877,7 @@ Condition_notify_waiters(Condition *self, int count)
         struct waiter *waiter = self->waiters.first;
         if (release_lock(&waiter->sem) != 0)
             return NULL;
-        Condition_remove_waiter(self, waiter);
+        waitq_remove(&self->waiters, waiter);
     }
 
     Py_RETURN_NONE;
@@ -910,13 +912,13 @@ Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    if (Condition_append_waiter(self, &waiter) != 0)
+    if (waitq_append(&self->waiters, &waiter) != 0)
         return NULL;
 
     res = Condition_wait_released(self, &waiter, timeout);
 
     if (res != ACQUIRE_OK)
-        Condition_remove_waiter(self, &waiter);
+        waitq_remove(&self->waiters, &waiter);
 
     if (res == ACQUIRE_ERROR)
         return NULL;
