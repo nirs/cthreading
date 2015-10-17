@@ -22,23 +22,22 @@ def main(args):
             raise ValueError("Usupported monkeypatch %r" % options.monkeypatch)
 
     try:
-        import Queue as queue
         _range = xrange
-    except ImportError:
-        import queue
+    except NameError:
         _range = range
 
     import threading
+    from simplequeue import Queue
 
     if options.profile:
         import yappi
         yappi.set_clock_type('cpu')
         yappi.start(builtins=True, profile_threads=True)
 
-    leftmost = queue.Queue()
+    leftmost = Queue()
     left = leftmost
     for i in _range(options.whispers):
-        right = queue.Queue()
+        right = Queue()
         t = threading.Thread(target=whisper, args=(left, right))
         t.daemon = True
         t.start()

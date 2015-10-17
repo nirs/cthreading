@@ -22,16 +22,15 @@ def main(args):
             raise ValueError("Usupported monkeypatch %r" % options.monkeypatch)
 
     try:
-        import Queue as queue
         _range = xrange
-    except ImportError:
-        import queue
+    except NameError:
         _range = range
 
     import threading
+    from simplequeue import Queue
 
-    src = queue.Queue()
-    dst = queue.Queue()
+    src = Queue()
+    dst = Queue()
 
     for i in _range(options.workers):
         t = threading.Thread(target=worker, args=(src, dst))
