@@ -9,3 +9,4 @@ install:
 script:
     - python setup.py build_ext -i
     - py.test -v
+    - python regrtest.py -v test_threading
