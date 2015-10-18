@@ -37,7 +37,7 @@ def main(args):
 
     leftmost = queue.Queue()
     left = leftmost
-    for i in _range(options.whispers):
+    for i in _range(options.threads):
         right = queue.Queue()
         t = threading.Thread(target=whisper, args=(left, right))
         t.daemon = True
@@ -49,7 +49,7 @@ def main(args):
 
     for i in _range(options.jobs):
         n = leftmost.get()
-        assert n == options.whispers + 1
+        assert n == options.threads + 1
 
     if options.profile:
         yappi.stop()
@@ -59,15 +59,15 @@ def main(args):
 
 def parse_args(args):
     parser = optparse.OptionParser(usage="whispers [options]")
-    parser.add_option("-w", "--whispers", dest="whispers", type="int",
-                      help="number of whispers")
+    parser.add_option("-t", "--threads", dest="threads", type="int",
+                      help="number of threads")
     parser.add_option("-j", "--jobs", dest="jobs", type="int",
                       help="number of jobs")
     parser.add_option("-m", "--monkeypatch", dest="monkeypatch",
                       help="monkeypatch type (native, cthreading, pthreading)")
     parser.add_option("-p", "--profile", dest="profile",
                       help="create profile (requires yappi 0.93)")
-    parser.set_defaults(whispers=200, jobs=5000, monkeypatch=None)
+    parser.set_defaults(threads=200, jobs=5000, monkeypatch=None)
     return parser.parse_args(args)
 
 

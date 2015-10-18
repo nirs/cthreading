@@ -33,7 +33,7 @@ def main(args):
     src = queue.Queue()
     dst = queue.Queue()
 
-    for i in _range(options.workers):
+    for i in _range(options.threads):
         t = threading.Thread(target=worker, args=(src, dst))
         t.daemon = True
         t.start()
@@ -48,15 +48,15 @@ def main(args):
 
 def parse_args(args):
     parser = optparse.OptionParser(usage="threadpool [options]")
-    parser.add_option("-w", "--workers", dest="workers", type="int",
-                      help="number of workers")
+    parser.add_option("-t", "--threads", dest="threads", type="int",
+                      help="number of threads")
     parser.add_option("-j", "--jobs", dest="jobs", type="int",
                       help="number of jobs to queue")
     parser.add_option("-r", "--rounds", dest="rounds", type="int",
                       help="number of rounds")
     parser.add_option("-m", "--monkeypatch", dest="monkeypatch",
                       help="monkeypatch type (native, cthreading, pthreading)")
-    parser.set_defaults(workers=20, jobs=3000, rounds=200, monkeypatch=None)
+    parser.set_defaults(threads=20, jobs=3000, rounds=200, monkeypatch=None)
     return parser.parse_args(args)
 
 
