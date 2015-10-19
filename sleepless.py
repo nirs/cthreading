@@ -55,7 +55,7 @@ def parse_args(args):
     parser = optparse.OptionParser(usage="sleepless [options]")
     parser.add_option("-t", "--threads", dest="threads", type="int",
                       help="number of threads")
-    parser.add_option("-s", "--timeout", dest="timeout", type="int",
+    parser.add_option("-s", "--timeout", dest="timeout", type="float",
                       help="number of seconds to sleep")
     parser.add_option("-m", "--monkeypatch", dest="monkeypatch",
                       help="monkeypatch type (native, cthreading, pthreading)")
