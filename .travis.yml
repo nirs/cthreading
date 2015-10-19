@@ -10,3 +10,9 @@ script:
     - python setup.py build_ext -i
     - py.test -v
     - python regrtest.py -v test_threading
+    - time python whispers.py -t 10
+    - time python whispers.py -t 10 -m cthreading
+    - time python threadpool.py -t 10 -r 1
+    - time python threadpool.py -t 10 -r 1 -m cthreading
+    - time python sleepless.py -t 10 -s 0.1
+    - time python sleepless.py -t 10 -s 0.1 -m cthreading
