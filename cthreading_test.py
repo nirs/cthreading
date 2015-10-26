@@ -75,6 +75,10 @@ def test_lock_release_from_other_thread(locktype):
     start_thread(lock.release).join()
     assert not locked(lock)
 
+def test_lock_release_unlocked():
+    lock = Lock()
+    pytest.raises(threading.ThreadError, lock.release)
+
 def test_lock_locked_released():
     lock = Lock()
     assert not lock.locked()
@@ -656,7 +660,6 @@ def test_cond_init_after_fork(locktype):
 
 def test_monkeypatch_patch(monkeypatch):
     monkeypatch.delitem(sys.modules, "threading")
-    monkeypatch.delitem(sys.modules, "thread")
     monkeypatch.setattr(cthreading, "_patched", False)
     cthreading.monkeypatch()
     import thread
@@ -669,20 +672,12 @@ def test_monkeypatch_patch(monkeypatch):
 
 def test_monkeypatch_twice(monkeypatch):
     monkeypatch.delitem(sys.modules, "threading")
-    monkeypatch.delitem(sys.modules, "thread")
     monkeypatch.setattr(cthreading, "_patched", False)
     cthreading.monkeypatch()
     pytest.raises(RuntimeError, cthreading.monkeypatch)
 
 def test_monkeypatch_threading_exists(monkeypatch):
-    monkeypatch.delitem(sys.modules, "thread")
     monkeypatch.setitem(sys.modules, "threading", None)
-    monkeypatch.setattr(cthreading, "_patched", False)
-    pytest.raises(RuntimeError, cthreading.monkeypatch)
-
-def test_monkeypatch_thread_exists(monkeypatch):
-    monkeypatch.delitem(sys.modules, "threading")
-    monkeypatch.setitem(sys.modules, "thread", None)
     monkeypatch.setattr(cthreading, "_patched", False)
     pytest.raises(RuntimeError, cthreading.monkeypatch)
 

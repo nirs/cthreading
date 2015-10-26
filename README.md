@@ -52,6 +52,9 @@ import cthreading
 cthreading.monkeypatch()
 ```
 
+Note: cthreading will raise RuntimeError if the threading module was imported
+before cthreading.monkeypatch() is called.
+
 ## Tested platforms
 
 ### x86_64

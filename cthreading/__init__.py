@@ -16,10 +16,9 @@ def monkeypatch():
     if _patched:
         raise RuntimeError("System already patched")
 
-    for mod in ("threading", "thread"):
-        if mod in sys.modules:
-            raise RuntimeError("Module %r is already imported, cannot "
-                               "monkeypatch it." % mod)
+    if "threading" in sys.modules:
+        raise RuntimeError("Module 'threading' is already imported, cannot "
+                           "monkeypatch it.")
 
     # Must be first
     import thread

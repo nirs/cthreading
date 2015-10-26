@@ -16,6 +16,8 @@
 #include <time.h>
 #include <stdlib.h>
 
+static PyObject *ThreadError;
+
 /* Helpers */
 
 static PyObject *
@@ -294,7 +296,7 @@ Lock_release(Lock *self, PyObject *args)
 
     /* Sanity check: the lock must be locked */
     if (self->owner == 0) {
-        PyErr_SetString(PyExc_RuntimeError, "release unlocked lock");
+        PyErr_SetString(ThreadError, "release unlocked lock");
         return NULL;
     }
 
@@ -1035,6 +1037,30 @@ static PyTypeObject ConditionType = {
 
 /* Module */
 
+static int
+import_thread_error(void)
+{
+    PyObject *thread_mod;
+    PyObject *thread_dict;
+
+    thread_mod = PyImport_ImportModule("thread");
+    if (thread_mod == NULL)
+        return -1;
+
+    thread_dict = PyModule_GetDict(thread_mod);
+    Py_CLEAR(thread_mod);
+    if (thread_dict == NULL)
+        return -1;
+
+    ThreadError = PyDict_GetItemString(thread_dict, "error");
+    if (ThreadError == NULL)
+        return -1;
+
+    Py_INCREF(ThreadError);
+
+    return 0;
+}
+
 PyDoc_STRVAR(module_doc,
 "Copyright 2014 Red Hat, Inc.  All rights reserved.\n\
 \n\
@@ -1050,6 +1076,9 @@ PyMODINIT_FUNC
 init_cthreading(void)
 {
     PyObject* module;
+
+    if (import_thread_error())
+        return;
 
     if (PyType_Ready(&LockType) < 0)
         return;
