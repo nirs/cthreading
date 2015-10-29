@@ -6,6 +6,7 @@
 
 import contextlib
 import os
+import logging
 import signal
 import sys
 import threading
@@ -14,6 +15,9 @@ import weakref
 
 import pytest
 import cthreading
+
+logging.basicConfig(level=logging.DEBUG,
+                    format="%(asctime)s %(message)s")
 
 def Lock():
     return cthreading.Lock()
@@ -363,14 +367,14 @@ def test_common_acquire_interrupt(locktype):
             done.wait()
 
     def receive(signo, frame):
-        print '[%f] received signal %d' % (time.time(), signo)
+        logging.debug('received signal %d', signo)
         signal_received[0] += 1
 
     def send():
         try:
             sender_ready.set()
             time.sleep(0.1)
-            print '[%f] sending signal %d' % (time.time(), signo)
+            logging.debug('sending signal %d', signo)
             os.kill(os.getpid(), signo)
             time.sleep(0.1)
         finally:
