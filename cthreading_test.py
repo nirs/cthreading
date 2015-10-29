@@ -606,6 +606,52 @@ def test_cond_recursive_wait_notify():
     finally:
         t.join()
 
+@pytest.mark.timeout(2, method='thread')
+@pytest.mark.parametrize("locktype", [Lock, RLock])
+def test_cond_init_after_fork(locktype):
+    cond = cthreading.Condition(locktype())
+    ready = threading.Event()
+
+    def wait():
+        with cond:
+            ready.set()
+            cond.wait()
+
+    # Start thread in the parent waiting on the condition.
+    t = start_thread(wait)
+    try:
+        ready.wait(0.5)
+        if not ready.is_set():
+            raise RuntimeError("Timeout waiting for waiter thread")
+        with cond:
+            pass
+        # Waiter thread is blocked now on the condition.
+        pid = os.fork()
+        if pid == 0:
+            # Should clear the wait queue inherited from parent.
+            cond.__init__(locktype())
+            ready = threading.Event()
+
+            def notify():
+                ready.wait()
+                with cond:
+                    cond.notify()
+
+            notified = False
+            start_thread(notify)
+            with cond:
+                ready.set()
+                # If wait queue is not clear, this should time out.
+                notified = cond.wait(1)
+            os._exit(0 if notified else 1)
+        else:
+            with cond:
+                cond.notify()
+            _, status = os.waitpid(pid, 0)
+            assert status == 0
+    finally:
+        t.join()
+
 # Monkeypatching
 
 def test_monkeypatch_patch(monkeypatch):
