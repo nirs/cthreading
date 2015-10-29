@@ -648,7 +648,7 @@ static PyTypeObject RLockType = {
 
 /* waitq */
 
-#define WAITER_REMOVED ((struct waiter *) -1)
+#define WAITER_UNUSED ((struct waiter *) -1)
 
 struct waiter {
     sem_t sem;
@@ -656,20 +656,37 @@ struct waiter {
     struct waiter *prev;
 };
 
+static int
+waiter_init(struct waiter *waiter)
+{
+    waiter->next = waiter->prev = WAITER_UNUSED;
+
+    /* Initialize in blocked state */
+    if (sem_init(&waiter->sem, 0, 0) != 0) {
+        set_error(errno, "sem_init");
+        return -1;
+    }
+
+    return 0;
+}
+
+static void
+waiter_destroy(struct waiter *waiter)
+{
+    assert(waiter->next == WAITER_UNUSED && waiter->prev == WAITER_UNUSED);
+    sem_destroy(&waiter->sem);
+}
+
 struct waitq {
     struct waiter *first;
     struct waiter *last;
     int count;
 };
 
-static int
+static void
 waitq_append(struct waitq *waitq, struct waiter *waiter)
 {
-    /* Initialize in blocked state */
-    if (sem_init(&waiter->sem, 0, 0) != 0) {
-        set_error(errno, "sem_init");
-        return -1;
-    }
+    assert(waiter->next == WAITER_UNUSED && waiter->prev == WAITER_UNUSED);
 
     waiter->next = NULL;
     waiter->prev = waitq->last;
@@ -682,14 +699,12 @@ waitq_append(struct waitq *waitq, struct waiter *waiter)
     waitq->last = waiter;
 
     waitq->count++;
-
-    return 0;
 }
 
 static void
 waitq_remove(struct waitq *waitq, struct waiter *waiter)
 {
-    if (waiter->next == WAITER_REMOVED || waiter->prev == WAITER_REMOVED)
+    if (waiter->next == WAITER_UNUSED)
         return;
 
     if (waiter->prev)
@@ -702,13 +717,10 @@ waitq_remove(struct waitq *waitq, struct waiter *waiter)
     else
         waitq->last = waiter->prev;
 
+    waiter->prev = waiter->next = WAITER_UNUSED;
+
     waitq->count--;
     assert(waitq->count >= 0);
-
-    sem_destroy(&waiter->sem);
-
-    waiter->prev = WAITER_REMOVED;
-    waiter->next = WAITER_REMOVED;
 }
 
 /* Condition */
@@ -912,13 +924,17 @@ Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    if (waitq_append(&self->waiters, &waiter) != 0)
+    if (waiter_init(&waiter) != 0)
         return NULL;
+
+    waitq_append(&self->waiters, &waiter);
 
     res = Condition_wait_released(self, &waiter, timeout);
 
     if (res != ACQUIRE_OK)
         waitq_remove(&self->waiters, &waiter);
+
+    waiter_destroy(&waiter);
 
     if (res == ACQUIRE_ERROR)
         return NULL;
