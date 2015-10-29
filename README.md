@@ -8,11 +8,11 @@ behavior or the overhead of pure Python and ctypes.
 
 ## Performance
 
-cthreading eliminates the overhead of threading.RLock and threading.Condition
+cthreading eliminates the overhead of threading.RLock and `threading.Condition`
 which are implemented in pure Python in Python 2. In particular,
-threading.Condition is implemented using polling. In Python 3
+`threading.Condition` is implemented using polling. In Python 3
 threading.Condition is implemented without polling; cthreading implements
-similar design in C.
+a similar design in C.
 
 ```
 $ time python whispers.py -m cthreading
