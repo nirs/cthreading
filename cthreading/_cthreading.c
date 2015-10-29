@@ -684,6 +684,13 @@ struct waitq {
 };
 
 static void
+waitq_init(struct waitq *waitq)
+{
+    waitq->first = waitq->last = NULL;
+    waitq->count = 0;
+}
+
+static void
 waitq_append(struct waitq *waitq, struct waiter *waiter)
 {
     assert(waiter->next == WAITER_UNUSED && waiter->prev == WAITER_UNUSED);
@@ -806,6 +813,8 @@ Condition_init(Condition *self, PyObject *args, PyObject *kwds)
     tmp = self->acquire_restore;
     self->acquire_restore = acquire_restore;
     Py_CLEAR(tmp);
+
+    waitq_init(&self->waiters);
 
     return 0;
 }
