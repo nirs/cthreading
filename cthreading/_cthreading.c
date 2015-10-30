@@ -310,7 +310,7 @@ Lock_release(Lock *self, PyObject *args)
 static PyObject *
 Lock_locked(Lock *self)
 {
-    return PyBool_FromLong((long)self->owner != 0);
+    return PyBool_FromLong(self->owner);
 }
 
 static PyObject *
