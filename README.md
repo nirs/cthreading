@@ -52,17 +52,22 @@ import cthreading
 cthreading.monkeypatch()
 ```
 
-## Distributions
+## Tested platforms
 
-Tested on:
-
+### x86_64
 - Fedora 22 / Python 2.7.10
+- RHEL 7.2 / Python 2.7.5
+- RHEL 7.2 / Python 2.7.10+ (upstream)
 - RHEL 7.1 / Python 2.7.5
 - RHEL 6.7 / Python-2.6.6
 - Ubuntu 14.04 Server / Python 2.7.6
 - Ubuntu 12.04 Server / Python 2.7.3 (python regression tests not available)
 - Ubuntu 12.04 / Python 2.6.9 (Travis container)
 - Ubuntu 12.04 / Python 2.7.9 (Travis container)
+
+### POWER8E
+- RHEL 7.2 / Python 2.7.5
+- RHEL 7.2 / Python 2.7.10+ (upstream)
 
 ## Hacking
 
