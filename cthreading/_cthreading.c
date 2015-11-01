@@ -311,35 +311,13 @@ lock_is_owned(lockobj *self)
 }
 
 static PyObject *
-lock_release_save(lockobj *self)
-{
-    PyObject *saved_state;
-
-    if (self->owner == 0) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "cannot release un-acquired lock");
-        return NULL;
-    }
-
-    saved_state = Py_BuildValue("l", self->owner);
-    if (saved_state == NULL)
-        return NULL;
-
-    if (release_lock(&self->sem) != 0)
-        return NULL;
-
-    self->owner = 0;
-
-    return saved_state;
-}
-
-static PyObject *
 lock_acquire_restore(lockobj *self, PyObject *args)
 {
-    long owner;
+    PyObject *ignored;
     acquire_result res;
 
-    if (!PyArg_ParseTuple(args, "l:_acquire_restore", &owner))
+    /* Require one argument to keep the same interface as rlockobj. */
+    if (!PyArg_ParseTuple(args, "O:_acquire_restore", &ignored))
         return NULL;
 
     /* May block forever but cannot fail unless the underlying sem_wait call
@@ -351,7 +329,7 @@ lock_acquire_restore(lockobj *self, PyObject *args)
     assert(res == ACQUIRE_OK);
     assert(self->owner == 0);
 
-    self->owner = owner;
+    self->owner = PyThread_get_thread_ident();
 
     Py_RETURN_NONE;
 }
@@ -363,7 +341,7 @@ static PyMethodDef lock_methods[] = {
     {"__exit__", (PyCFunction)lock_release, METH_VARARGS, NULL},
     {"locked", (PyCFunction)lock_locked, METH_NOARGS, NULL},
     {"_is_owned", (PyCFunction)lock_is_owned, METH_NOARGS, NULL},
-    {"_release_save", (PyCFunction)lock_release_save, METH_NOARGS, NULL},
+    {"_release_save", (PyCFunction)lock_release, METH_VARARGS, NULL},
     {"_acquire_restore", (PyCFunction)lock_acquire_restore, METH_VARARGS, NULL},
     {NULL}  /* Sentinel */
 };

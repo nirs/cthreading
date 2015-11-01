@@ -92,32 +92,30 @@ def test_lock_locked_acquired():
 def test_lock_release_save(locktype):
     lock = locktype()
     lock.acquire()
-    owner = lock._release_save()
-    assert owner == threading.current_thread().ident
+    lock._release_save()
     assert not locked(lock)
 
 @pytest.mark.parametrize("locktype", [Lock, Condition])
 def test_lock_release_save_unacquired(locktype):
     lock = locktype()
-    pytest.raises(RuntimeError, lock._release_save)
+    pytest.raises(threading.ThreadError, lock._release_save)
 
 @pytest.mark.parametrize("locktype", [Lock, Condition])
 def test_lock_acquire_restore(locktype):
     lock = locktype()
-    me = threading.current_thread().ident
-    lock._acquire_restore(me)
-    assert locked(lock)
-    assert lock._release_save() == me
+    with lock:
+        lock._release_save()
+        lock._acquire_restore(None)
+        assert locked(lock)
 
 @pytest.mark.parametrize("state", [
-    (),
-    (1, "extra"),
-    ("invalid",),
+    (),     # No arguments
+    (1, 2), # Too many
 ])
 @pytest.mark.parametrize("locktype", [Lock, Condition])
-def test_lock_acquire_restore_bad_state(locktype, state):
+def test_lock_acquire_restore_bad_call(locktype, state):
     lock = locktype()
-    pytest.raises(TypeError, lock._acquire_restore, state)
+    pytest.raises(TypeError, lock._acquire_restore, *state)
 
 # RLock tests
 
