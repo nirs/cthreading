@@ -822,6 +822,8 @@ Condition_init(Condition *self, PyObject *args, PyObject *kwds)
 static void
 Condition_dealloc(Condition* self)
 {
+    assert(self->waiters.first == NULL && self->waiters.last == NULL);
+
     if (self->weakrefs)
         PyObject_ClearWeakRefs((PyObject *) self);
 
