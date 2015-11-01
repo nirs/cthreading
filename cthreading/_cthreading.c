@@ -261,7 +261,7 @@ Lock_dealloc(Lock* self)
 static PyObject *
 Lock_acquire(Lock *self, PyObject *args, PyObject *kwds)
 {
-    double timeout = -1;
+    double timeout;
     acquire_result res;
 
     if (acquire_parse_args(args, kwds, &timeout))
@@ -467,7 +467,7 @@ RLock_dealloc(RLock* self)
 static PyObject *
 RLock_acquire(RLock *self, PyObject *args, PyObject *kwds)
 {
-    double timeout = -1;
+    double timeout;
     long tid;
     acquire_result res;
 
