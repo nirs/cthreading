@@ -76,72 +76,60 @@ deadline_from_timeout(double timeout, struct timespec *deadline)
     deadline->tv_nsec = tv.tv_usec * NSEC_PER_USEC;
 }
 
+#define UNLIMITED (-1)
+
+static int
+parse_timeout(PyObject *obj, double *timeout)
+{
+    double value;
+
+    if (obj == Py_None) {
+        *timeout = UNLIMITED;
+        return 0;
+    }
+
+    value = PyFloat_AsDouble(obj);
+    if (value == -1 && PyErr_Occurred())
+        return -1;
+
+    if (value < 0 && value != UNLIMITED) {
+        PyErr_SetString(PyExc_ValueError, "timeout value must be positive");
+        return -1;
+    }
+
+    *timeout = value;
+    return 0;
+}
+
 /* Parse acquire args (blocking=True, timeout=-1)) and return the timeout by
  * reference. The blocking argument is not needed as timeout=-1 means blocking
  * without limit, and timeout=0 means no blocking. */
 static int
-parse_acquire_args(PyObject *args, PyObject *kwds, double *timeout)
+acquire_parse_args(PyObject *args, PyObject *kwds, double *timeout)
 {
     char *kwlist[] = {"blocking", "timeout", NULL};
     int blocking = 1;
-    PyObject *timeout_obj = NULL;
-    double timeout_val = -1;
+    PyObject *obj = Py_None;
+    double value;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iO:acquire", kwlist,
-                                     &blocking, &timeout_obj))
+                                     &blocking, &obj))
         return -1;
 
-    if (timeout_obj) {
-        timeout_val = PyFloat_AsDouble(timeout_obj);
-        if (timeout_val == -1 && PyErr_Occurred())
-            return -1;
-    }
+    if (parse_timeout(obj, &value) != 0)
+        return -1;
 
-    if (!blocking && timeout_val != -1) {
+    if (!blocking && value != UNLIMITED) {
         PyErr_SetString(PyExc_ValueError,
                         "can't specify a timeout for a non-blocking call");
         return -1;
     }
 
-    if (timeout_val < 0 && timeout_val != -1) {
-        PyErr_SetString(PyExc_ValueError,
-                        "timeout value must be positive");
-        return -1;
-    }
-
     if (blocking)
-        *timeout = timeout_val;
+        *timeout = value;
     else
         *timeout = 0;
 
-    return 0;
-}
-
-static int
-parse_wait_args(PyObject *args, PyObject *kwds, double *timeout)
-{
-    char *kwlist[] = {"timeout", "balancing", NULL};
-    PyObject *timeout_obj = Py_None;
-    double timeout_val = -1;
-    PyObject *balancing = NULL; /* Unused */
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OO:wait", kwlist,
-                                     &timeout_obj, &balancing))
-        return -1;
-
-    if (timeout_obj != Py_None) {
-        timeout_val = PyFloat_AsDouble(timeout_obj);
-        if (timeout_val == -1 && PyErr_Occurred())
-            return -1;
-    }
-
-    if (timeout_val < 0 && timeout_val != -1) {
-        PyErr_SetString(PyExc_ValueError,
-                        "timeout value must be positive");
-        return -1;
-    }
-
-    *timeout = timeout_val;
     return 0;
 }
 
@@ -276,7 +264,7 @@ Lock_acquire(Lock *self, PyObject *args, PyObject *kwds)
     double timeout = -1;
     acquire_result res;
 
-    if (parse_acquire_args(args, kwds, &timeout))
+    if (acquire_parse_args(args, kwds, &timeout))
         return NULL;
 
     res = acquire_lock(&self->sem, timeout);
@@ -483,7 +471,7 @@ RLock_acquire(RLock *self, PyObject *args, PyObject *kwds)
     long tid;
     acquire_result res;
 
-    if (parse_acquire_args(args, kwds, &timeout))
+    if (acquire_parse_args(args, kwds, &timeout))
         return NULL;
 
     tid = PyThread_get_thread_ident();
@@ -921,6 +909,23 @@ Condition_release(Condition *self, PyObject *args)
     return PyObject_CallObject(self->release, args);
 }
 
+static int
+Condition_wait_parse_args(PyObject *args, PyObject *kwds, double *timeout)
+{
+    char *kwlist[] = {"timeout", "balancing", NULL};
+    PyObject *obj = Py_None;
+    PyObject *balancing = NULL; /* Unused */
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OO:wait", kwlist,
+                                     &obj, &balancing))
+        return -1;
+
+    if (parse_timeout(obj, timeout) != 0)
+        return -1;
+
+    return 0;
+}
+
 static PyObject *
 Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
 {
@@ -928,7 +933,7 @@ Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
     double timeout;
     acquire_result res;
 
-    if (parse_wait_args(args, kwds, &timeout) != 0)
+    if (Condition_wait_parse_args(args, kwds, &timeout) != 0)
         return NULL;
 
     if (!Condition_is_owned_internal(self)) {

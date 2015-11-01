@@ -41,7 +41,7 @@ def test_lock_acquire_timeout_timedout(locktype, timeout):
     with lock:
         assert not lock.acquire(True, timeout)
 
-@pytest.mark.parametrize("timeout", [0.9, 1.0])
+@pytest.mark.parametrize("timeout", [None, -1, -1.0, 0.9, 1.0])
 @pytest.mark.parametrize("locktype", [Lock, Condition])
 def test_lock_acquire_timeout_block(locktype, timeout):
     lock = locktype()
@@ -135,7 +135,7 @@ def test_rlock_acquire_recursive(locktype):
         assert lock.acquire(False)
     assert locked(lock)
 
-@pytest.mark.parametrize("timeout", [-1.0, -1, 0.0, 1.0, 1000])
+@pytest.mark.parametrize("timeout", [None, -1.0, -1, 0.0, 1.0, 1000])
 @pytest.mark.parametrize("locktype", [RLock, RCondition])
 def test_rlock_acquire_timeout_free(locktype, timeout):
     lock = locktype()
