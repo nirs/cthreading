@@ -206,29 +206,29 @@ release_lock(sem_t *sem)
     return 0;
 }
 
-/* Lock */
+/* Lock object */
 
 typedef struct {
     PyObject_HEAD
     sem_t sem;
     long owner;
     PyObject *weakrefs;
-} Lock;
+} lockobj;
 
-PyDoc_STRVAR(Lock_doc,
+PyDoc_STRVAR(lock_doc,
 "Lock()");
 
 static PyObject *
-Lock_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+lock_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    Lock *self;
+    lockobj *self;
     int err;
 
-    self = (Lock *)type->tp_alloc(type, 0);
+    self = (lockobj *)type->tp_alloc(type, 0);
     if (self == NULL)
         return NULL;
 
-    /* First initialize all fields so Lock_dealloc does the right thing if
+    /* First initialize all fields so lock_dealloc does the right thing if
      * initializing the semaphore fails. */
     self->owner = 0;
     self->weakrefs = NULL;
@@ -245,21 +245,21 @@ Lock_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static void
-Lock_dealloc(Lock* self)
+lock_dealloc(lockobj *self)
 {
     if (self->weakrefs)
         PyObject_ClearWeakRefs((PyObject *) self);
 
     /* This must not be called when other threads are waiting on the semaphore
      * in sem_wait(). We rely on the reference counting machanisim to call this
-     * only when no object has a reference to the Lock object. */
+     * only when no object has a reference to the lockobj object. */
     sem_destroy(&self->sem);
 
     PyObject_Del(self);
 }
 
 static PyObject *
-Lock_acquire(Lock *self, PyObject *args, PyObject *kwds)
+lock_acquire(lockobj *self, PyObject *args, PyObject *kwds)
 {
     double timeout;
     acquire_result res;
@@ -278,7 +278,7 @@ Lock_acquire(Lock *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
-Lock_release(Lock *self, PyObject *args)
+lock_release(lockobj *self, PyObject *args)
 {
     int err;
 
@@ -298,20 +298,20 @@ Lock_release(Lock *self, PyObject *args)
 }
 
 static PyObject *
-Lock_locked(Lock *self)
+lock_locked(lockobj *self)
 {
     return PyBool_FromLong(self->owner);
 }
 
 static PyObject *
-Lock_is_owned(Lock *self)
+lock_is_owned(lockobj *self)
 {
     long tid = PyThread_get_thread_ident();
     return PyBool_FromLong(self->owner == tid);
 }
 
 static PyObject *
-Lock_release_save(Lock *self)
+lock_release_save(lockobj *self)
 {
     PyObject *saved_state;
 
@@ -334,7 +334,7 @@ Lock_release_save(Lock *self)
 }
 
 static PyObject *
-Lock_acquire_restore(Lock *self, PyObject *args)
+lock_acquire_restore(lockobj *self, PyObject *args)
 {
     long owner;
     acquire_result res;
@@ -356,15 +356,15 @@ Lock_acquire_restore(Lock *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyMethodDef Lock_methods[] = {
-    {"acquire", (PyCFunction)Lock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"__enter__", (PyCFunction)Lock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"release", (PyCFunction)Lock_release, METH_VARARGS, NULL},
-    {"__exit__", (PyCFunction)Lock_release, METH_VARARGS, NULL},
-    {"locked", (PyCFunction)Lock_locked, METH_NOARGS, NULL},
-    {"_is_owned", (PyCFunction)Lock_is_owned, METH_NOARGS, NULL},
-    {"_release_save", (PyCFunction)Lock_release_save, METH_NOARGS, NULL},
-    {"_acquire_restore", (PyCFunction)Lock_acquire_restore, METH_VARARGS, NULL},
+static PyMethodDef lock_methods[] = {
+    {"acquire", (PyCFunction)lock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)lock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"release", (PyCFunction)lock_release, METH_VARARGS, NULL},
+    {"__exit__", (PyCFunction)lock_release, METH_VARARGS, NULL},
+    {"locked", (PyCFunction)lock_locked, METH_NOARGS, NULL},
+    {"_is_owned", (PyCFunction)lock_is_owned, METH_NOARGS, NULL},
+    {"_release_save", (PyCFunction)lock_release_save, METH_NOARGS, NULL},
+    {"_acquire_restore", (PyCFunction)lock_acquire_restore, METH_VARARGS, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -372,9 +372,9 @@ static PyTypeObject LockType = {
     PyObject_HEAD_INIT(NULL)
     0,                          /* ob_size */
     "_cthreading.Lock",         /* tp_name */
-    sizeof(Lock),               /* tp_basicsize */
+    sizeof(lockobj),            /* tp_basicsize */
     0,                          /* tp_itemsize */
-    (destructor)Lock_dealloc,   /* tp_dealloc */
+    (destructor)lock_dealloc,   /* tp_dealloc */
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
@@ -390,14 +390,14 @@ static PyTypeObject LockType = {
     0,                          /* tp_setattro */
     0,                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,         /* tp_flags */
-    Lock_doc,                   /* tp_doc */
+    lock_doc,                   /* tp_doc */
     0,                          /* tp_traverse */
     0,                          /* tp_clear */
     0,                          /* tp_richcompare */
-    offsetof(Lock, weakrefs),   /* tp_weaklistoffset */
+    offsetof(lockobj, weakrefs),   /* tp_weaklistoffset */
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
-    Lock_methods,               /* tp_methods */
+    lock_methods,               /* tp_methods */
     0,                          /* tp_members */
     0,                          /* tp_getset */
     0,                          /* tp_base */
@@ -407,10 +407,10 @@ static PyTypeObject LockType = {
     0,                          /* tp_dictoffset */
     0,                          /* tp_init */
     0,                          /* tp_alloc */
-    Lock_new,                   /* tp_new */
+    lock_new,                   /* tp_new */
 };
 
-/* RLock */
+/* RLock object */
 
 typedef struct {
     PyObject_HEAD
@@ -418,22 +418,22 @@ typedef struct {
     long owner;
     unsigned long count;
     PyObject *weakrefs;
-} RLock;
+} rlockobj;
 
-PyDoc_STRVAR(RLock_doc,
+PyDoc_STRVAR(rlock_doc,
 "RLock()");
 
 static PyObject *
-RLock_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+rlock_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    RLock *self;
+    rlockobj *self;
     int err;
 
-    self = (RLock *)type->tp_alloc(type, 0);
+    self = (rlockobj *)type->tp_alloc(type, 0);
     if (self == NULL)
         return NULL;
 
-    /* First initialize all fields so RLock_dealloc does the right thing if
+    /* First initialize all fields so rlock_dealloc does the right thing if
      * initializing the semaphore fails. */
     self->owner = 0;
     self->count = 0;
@@ -451,21 +451,21 @@ RLock_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static void
-RLock_dealloc(RLock* self)
+rlock_dealloc(rlockobj *self)
 {
     if (self->weakrefs)
         PyObject_ClearWeakRefs((PyObject *) self);
 
     /* This must not be called when other threads are waiting on the semaphore
      * in sem_wait(). We rely on the reference counting machanisim to call this
-     * only when no object has a reference to the Lock object. */
+     * only when no object has a reference to the lockobj object. */
     sem_destroy(&self->sem);
 
     PyObject_Del(self);
 }
 
 static PyObject *
-RLock_acquire(RLock *self, PyObject *args, PyObject *kwds)
+rlock_acquire(rlockobj *self, PyObject *args, PyObject *kwds)
 {
     double timeout;
     long tid;
@@ -501,7 +501,7 @@ RLock_acquire(RLock *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
-RLock_release(RLock *self, PyObject *args)
+rlock_release(rlockobj *self, PyObject *args)
 {
     long tid = PyThread_get_thread_ident();
 
@@ -527,14 +527,14 @@ RLock_release(RLock *self, PyObject *args)
 }
 
 static PyObject *
-RLock_is_owned(RLock *self)
+rlock_is_owned(rlockobj *self)
 {
     long tid = PyThread_get_thread_ident();
     return PyBool_FromLong(self->count > 0 && self->owner == tid);
 }
 
 static PyObject *
-RLock_release_save(RLock *self)
+rlock_release_save(rlockobj *self)
 {
     PyObject *saved_state;
 
@@ -558,7 +558,7 @@ RLock_release_save(RLock *self)
 }
 
 static PyObject *
-RLock_acquire_restore(RLock *self, PyObject *args)
+rlock_acquire_restore(rlockobj *self, PyObject *args)
 {
     unsigned long count;
     long owner;
@@ -583,14 +583,14 @@ RLock_acquire_restore(RLock *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyMethodDef RLock_methods[] = {
-    {"acquire", (PyCFunction)RLock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"__enter__", (PyCFunction)RLock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"release", (PyCFunction)RLock_release, METH_VARARGS, NULL},
-    {"__exit__", (PyCFunction)RLock_release, METH_VARARGS, NULL},
-    {"_is_owned", (PyCFunction)RLock_is_owned, METH_NOARGS, NULL},
-    {"_release_save", (PyCFunction)RLock_release_save, METH_NOARGS, NULL},
-    {"_acquire_restore", (PyCFunction)RLock_acquire_restore, METH_VARARGS, NULL},
+static PyMethodDef rlock_methods[] = {
+    {"acquire", (PyCFunction)rlock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)rlock_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"release", (PyCFunction)rlock_release, METH_VARARGS, NULL},
+    {"__exit__", (PyCFunction)rlock_release, METH_VARARGS, NULL},
+    {"_is_owned", (PyCFunction)rlock_is_owned, METH_NOARGS, NULL},
+    {"_release_save", (PyCFunction)rlock_release_save, METH_NOARGS, NULL},
+    {"_acquire_restore", (PyCFunction)rlock_acquire_restore, METH_VARARGS, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -598,9 +598,9 @@ static PyTypeObject RLockType = {
     PyObject_HEAD_INIT(NULL)
     0,                          /* ob_size */
     "_cthreading.RLock",        /* tp_name */
-    sizeof(RLock),              /* tp_basicsize */
+    sizeof(rlockobj),           /* tp_basicsize */
     0,                          /* tp_itemsize */
-    (destructor)RLock_dealloc,  /* tp_dealloc */
+    (destructor)rlock_dealloc,  /* tp_dealloc */
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
@@ -616,14 +616,14 @@ static PyTypeObject RLockType = {
     0,                          /* tp_setattro */
     0,                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,         /* tp_flags */
-    RLock_doc,                  /* tp_doc */
+    rlock_doc,                  /* tp_doc */
     0,                          /* tp_traverse */
     0,                          /* tp_clear */
     0,                          /* tp_richcompare */
-    offsetof(RLock, weakrefs),  /* tp_weaklistoffset */
+    offsetof(rlockobj, weakrefs),  /* tp_weaklistoffset */
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
-    RLock_methods,              /* tp_methods */
+    rlock_methods,              /* tp_methods */
     0,                          /* tp_members */
     0,                          /* tp_getset */
     0,                          /* tp_base */
@@ -633,7 +633,7 @@ static PyTypeObject RLockType = {
     0,                          /* tp_dictoffset */
     0,                          /* tp_init */
     0,                          /* tp_alloc */
-    RLock_new,                  /* tp_new */
+    rlock_new,                  /* tp_new */
 };
 
 /* waitq */
@@ -720,7 +720,7 @@ waitq_remove(struct waitq *waitq, struct waiter *waiter)
     assert(waitq->count >= 0);
 }
 
-/* Condition */
+/* Condition object */
 
 typedef struct {
     PyObject_HEAD
@@ -732,13 +732,13 @@ typedef struct {
     PyObject *acquire_restore;
     struct waitq waiters;
     PyObject *weakrefs;
-} Condition;
+} condobj;
 
-PyDoc_STRVAR(Condition_doc,
+PyDoc_STRVAR(cond_doc,
 "Condition(lock=None)");
 
 static int
-Condition_init(Condition *self, PyObject *args, PyObject *kwds)
+cond_init(condobj *self, PyObject *args, PyObject *kwds)
 {
     PyObject *lock = Py_None;
     PyObject *acquire = NULL;
@@ -810,7 +810,7 @@ Condition_init(Condition *self, PyObject *args, PyObject *kwds)
 }
 
 static void
-Condition_dealloc(Condition* self)
+cond_dealloc(condobj *self)
 {
     assert(self->waiters.first == NULL && self->waiters.last == NULL);
 
@@ -828,19 +828,19 @@ Condition_dealloc(Condition* self)
 }
 
 static PyObject *
-Condition_release_save(Condition *self)
+cond_release_save(condobj *self)
 {
     return PyObject_CallObject(self->release_save, NULL);
 }
 
 static PyObject *
-Condition_acquire_restore(Condition *self, PyObject *args)
+cond_acquire_restore(condobj *self, PyObject *args)
 {
     return PyObject_CallObject(self->acquire_restore, args);
 }
 
 static acquire_result
-Condition_wait_released(Condition *self, struct waiter *waiter, double timeout)
+cond_wait_released(condobj *self, struct waiter *waiter, double timeout)
 {
     PyObject *saved_state = NULL;
     PyObject *r = NULL;
@@ -863,7 +863,7 @@ Condition_wait_released(Condition *self, struct waiter *waiter, double timeout)
 }
 
 static int
-Condition_is_owned_internal(Condition *self)
+cond_is_owned_internal(condobj *self)
 {
     PyObject *r;
     int is_owned;
@@ -876,11 +876,11 @@ Condition_is_owned_internal(Condition *self)
 }
 
 static PyObject *
-Condition_notify_waiters(Condition *self, int count)
+cond_notify_waiters(condobj *self, int count)
 {
     int i;
 
-    if (!Condition_is_owned_internal(self)) {
+    if (!cond_is_owned_internal(self)) {
         PyErr_SetString(PyExc_RuntimeError,
                         "cannot notify un-acquired condition");
         return NULL;
@@ -897,20 +897,20 @@ Condition_notify_waiters(Condition *self, int count)
 }
 
 static PyObject *
-Condition_acquire(Condition *self, PyObject *args, PyObject *kwds)
+cond_acquire(condobj *self, PyObject *args, PyObject *kwds)
 {
     assert(args != NULL);
     return PyObject_Call(self->acquire, args, kwds);
 }
 
 static PyObject *
-Condition_release(Condition *self, PyObject *args)
+cond_release(condobj *self, PyObject *args)
 {
     return PyObject_CallObject(self->release, args);
 }
 
 static int
-Condition_wait_parse_args(PyObject *args, PyObject *kwds, double *timeout)
+cond_wait_parse_args(PyObject *args, PyObject *kwds, double *timeout)
 {
     char *kwlist[] = {"timeout", "balancing", NULL};
     PyObject *obj = Py_None;
@@ -927,16 +927,16 @@ Condition_wait_parse_args(PyObject *args, PyObject *kwds, double *timeout)
 }
 
 static PyObject *
-Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
+cond_wait(condobj *self, PyObject *args, PyObject *kwds)
 {
     struct waiter waiter;
     double timeout;
     acquire_result res;
 
-    if (Condition_wait_parse_args(args, kwds, &timeout) != 0)
+    if (cond_wait_parse_args(args, kwds, &timeout) != 0)
         return NULL;
 
-    if (!Condition_is_owned_internal(self)) {
+    if (!cond_is_owned_internal(self)) {
         PyErr_SetString(PyExc_RuntimeError,
                         "cannot wait on un-acquired condition");
         return NULL;
@@ -947,7 +947,7 @@ Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
 
     waitq_append(&self->waiters, &waiter);
 
-    res = Condition_wait_released(self, &waiter, timeout);
+    res = cond_wait_released(self, &waiter, timeout);
 
     if (res != ACQUIRE_OK)
         waitq_remove(&self->waiters, &waiter);
@@ -961,40 +961,40 @@ Condition_wait(Condition *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
-Condition_notify(Condition *self, PyObject *args)
+cond_notify(condobj *self, PyObject *args)
 {
     int count = 1;
 
     if (!PyArg_ParseTuple(args, "|i", &count))
         return NULL;
 
-    return Condition_notify_waiters(self, count);
+    return cond_notify_waiters(self, count);
 }
 
 static PyObject *
-Condition_notify_all(Condition *self)
+cond_notify_all(condobj *self)
 {
-    return Condition_notify_waiters(self, self->waiters.count);
+    return cond_notify_waiters(self, self->waiters.count);
 }
 
 static PyObject *
-Condition_is_owned(Condition *self)
+cond_is_owned(condobj *self)
 {
     return PyObject_CallObject(self->is_owned, NULL);
 }
 
-static PyMethodDef Condition_methods[] = {
-    {"acquire", (PyCFunction)Condition_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"__enter__", (PyCFunction)Condition_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"release", (PyCFunction)Condition_release, METH_VARARGS, NULL},
-    {"__exit__", (PyCFunction)Condition_release, METH_VARARGS, NULL},
-    {"wait", (PyCFunction)Condition_wait, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"notify", (PyCFunction)Condition_notify, METH_VARARGS, NULL},
-    {"notify_all", (PyCFunction)Condition_notify_all, METH_VARARGS, NULL},
-    {"notifyAll", (PyCFunction)Condition_notify_all, METH_VARARGS, NULL},
-    {"_is_owned", (PyCFunction)Condition_is_owned, METH_NOARGS, NULL},
-    {"_release_save", (PyCFunction)Condition_release_save, METH_NOARGS, NULL},
-    {"_acquire_restore", (PyCFunction)Condition_acquire_restore, METH_VARARGS, NULL},
+static PyMethodDef cond_methods[] = {
+    {"acquire", (PyCFunction)cond_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)cond_acquire, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"release", (PyCFunction)cond_release, METH_VARARGS, NULL},
+    {"__exit__", (PyCFunction)cond_release, METH_VARARGS, NULL},
+    {"wait", (PyCFunction)cond_wait, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"notify", (PyCFunction)cond_notify, METH_VARARGS, NULL},
+    {"notify_all", (PyCFunction)cond_notify_all, METH_VARARGS, NULL},
+    {"notifyAll", (PyCFunction)cond_notify_all, METH_VARARGS, NULL},
+    {"_is_owned", (PyCFunction)cond_is_owned, METH_NOARGS, NULL},
+    {"_release_save", (PyCFunction)cond_release_save, METH_NOARGS, NULL},
+    {"_acquire_restore", (PyCFunction)cond_acquire_restore, METH_VARARGS, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -1002,9 +1002,9 @@ static PyTypeObject ConditionType = {
     PyObject_HEAD_INIT(NULL)
     0,                          /* ob_size */
     "_cthreading.Condition",    /* tp_name */
-    sizeof(Condition),          /* tp_basicsize */
+    sizeof(condobj),            /* tp_basicsize */
     0,                          /* tp_itemsize */
-    (destructor)Condition_dealloc,  /* tp_dealloc */
+    (destructor)cond_dealloc,   /* tp_dealloc */
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
@@ -1020,14 +1020,14 @@ static PyTypeObject ConditionType = {
     0,                          /* tp_setattro */
     0,                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,         /* tp_flags */
-    Condition_doc,              /* tp_doc */
+    cond_doc,                   /* tp_doc */
     0,                          /* tp_traverse */
     0,                          /* tp_clear */
     0,                          /* tp_richcompare */
-    offsetof(Condition, weakrefs),  /* tp_weaklistoffset */
+    offsetof(condobj, weakrefs),  /* tp_weaklistoffset */
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
-    Condition_methods,          /* tp_methods */
+    cond_methods,               /* tp_methods */
     0,                          /* tp_members */
     0,                          /* tp_getset */
     0,                          /* tp_base */
@@ -1035,7 +1035,7 @@ static PyTypeObject ConditionType = {
     0,                          /* tp_descr_get */
     0,                          /* tp_descr_set */
     0,                          /* tp_dictoffset */
-    (initproc)Condition_init,   /* tp_init */
+    (initproc)cond_init,        /* tp_init */
     0,                          /* tp_alloc */
     0,                          /* tp_new */
 };
