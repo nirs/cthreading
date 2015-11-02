@@ -6,37 +6,21 @@
 
 import optparse
 import sys
+import benchlib
+
+parser = benchlib.option_parser("sleepless [options]")
+parser.add_option("-s", "--timeout", dest="timeout", type="float",
+                  help="number of seconds to sleep")
+parser.set_defaults(threads=400, timeout=10)
 
 
-def main(args):
-    options, args = parse_args(args)
-
-    if options.monkeypatch:
-        if options.monkeypatch == "cthreading":
-            import cthreading
-            cthreading.monkeypatch()
-        elif options.monkeypatch == "pthreading":
-            import pthreading
-            pthreading.monkey_patch()
-        else:
-            raise ValueError("Usupported monkeypatch %r" % options.monkeypatch)
-
-    try:
-        _range = xrange
-    except NameError:
-        _range = range
-
+def sleepless(options):
     import threading
-
-    if options.profile:
-        import yappi
-        yappi.set_clock_type('cpu')
-        yappi.start(builtins=True, profile_threads=True)
 
     cond = threading.Condition(threading.Lock())
     threads = []
 
-    for i in _range(options.threads):
+    for i in benchlib.range(options.threads):
         t = threading.Thread(target=sleep, args=(cond, options.timeout))
         t.daemon = True
         t.start()
@@ -45,25 +29,6 @@ def main(args):
     for t in threads:
         t.join()
 
-    if options.profile:
-        yappi.stop()
-        stats = yappi.get_func_stats()
-        stats.save(options.profile, 'pstat')
-
-
-def parse_args(args):
-    parser = optparse.OptionParser(usage="sleepless [options]")
-    parser.add_option("-t", "--threads", dest="threads", type="int",
-                      help="number of threads")
-    parser.add_option("-s", "--timeout", dest="timeout", type="float",
-                      help="number of seconds to sleep")
-    parser.add_option("-m", "--monkeypatch", dest="monkeypatch",
-                      help="monkeypatch type (native, cthreading, pthreading)")
-    parser.add_option("-p", "--profile", dest="profile",
-                      help="create profile (requires yappi 0.93)")
-    parser.set_defaults(threads=400, timeout=10, monkeypatch=None)
-    return parser.parse_args(args)
-
 
 def sleep(cond, timeout):
     with cond:
@@ -71,4 +36,5 @@ def sleep(cond, timeout):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    options, args = parser.parse_args(sys.argv)
+    benchlib.run(sleepless, options)

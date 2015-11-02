@@ -6,69 +6,36 @@
 
 import optparse
 import sys
+import benchlib
+
+parser = benchlib.option_parser("whispers [options]")
+parser.add_option("-j", "--jobs", dest="jobs", type="int",
+                  help="number of jobs")
+parser.set_defaults(threads=200, jobs=5000)
 
 
-def main(args):
-    options, args = parse_args(args)
-
-    if options.monkeypatch:
-        if options.monkeypatch == "cthreading":
-            import cthreading
-            cthreading.monkeypatch()
-        elif options.monkeypatch == "pthreading":
-            import pthreading
-            pthreading.monkey_patch()
-        else:
-            raise ValueError("Usupported monkeypatch %r" % options.monkeypatch)
-
+def whispers(options):
+    import threading
     try:
         import Queue as queue
-        _range = xrange
     except ImportError:
         import queue
-        _range = range
-
-    import threading
-
-    if options.profile:
-        import yappi
-        yappi.set_clock_type('cpu')
-        yappi.start(builtins=True, profile_threads=True)
 
     leftmost = queue.Queue()
     left = leftmost
-    for i in _range(options.threads):
+    for i in benchlib.range(options.threads):
         right = queue.Queue()
         t = threading.Thread(target=whisper, args=(left, right))
         t.daemon = True
         t.start()
         left = right
 
-    for i in _range(options.jobs):
+    for i in benchlib.range(options.jobs):
         right.put(1)
 
-    for i in _range(options.jobs):
+    for i in benchlib.range(options.jobs):
         n = leftmost.get()
         assert n == options.threads + 1
-
-    if options.profile:
-        yappi.stop()
-        stats = yappi.get_func_stats()
-        stats.save(options.profile, 'pstat')
-
-
-def parse_args(args):
-    parser = optparse.OptionParser(usage="whispers [options]")
-    parser.add_option("-t", "--threads", dest="threads", type="int",
-                      help="number of threads")
-    parser.add_option("-j", "--jobs", dest="jobs", type="int",
-                      help="number of jobs")
-    parser.add_option("-m", "--monkeypatch", dest="monkeypatch",
-                      help="monkeypatch type (native, cthreading, pthreading)")
-    parser.add_option("-p", "--profile", dest="profile",
-                      help="create profile (requires yappi 0.93)")
-    parser.set_defaults(threads=200, jobs=5000, monkeypatch=None)
-    return parser.parse_args(args)
 
 
 def whisper(left, right):
@@ -78,4 +45,5 @@ def whisper(left, right):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    options, args = parser.parse_args(sys.argv)
+    benchlib.run(whispers, options)
