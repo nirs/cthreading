@@ -7,7 +7,7 @@ up threads synchronization and decreasing cpu usage.
 
 Status: |travis|
 
-.. |travis| image:: https://travis-ci.org/nirs/cthreading.svg?branch=v0.2
+.. |travis| image:: https://travis-ci.org/nirs/cthreading.svg?branch=master
     :alt: Travis-CI Build Status
     :target: https://travis-ci.org/nirs/cthreading
 
