@@ -22,5 +22,5 @@ setup(
     platforms=["Linux"],
     packages=["cthreading"],
     url="https://github.com/nirs/cthreading",
-    version="0.2",
+    version="0.3",
 )
