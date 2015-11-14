@@ -68,7 +68,7 @@ deadline_from_timeout(double timeout, struct timespec *deadline)
 
     if (tv.tv_usec > 1000000) {
         tv.tv_usec -= 1000000;
-        if (tv.tv_sec <= INT_MAX - 1)
+        if (tv.tv_sec < INT_MAX)
             tv.tv_sec += 1;
     }
 
