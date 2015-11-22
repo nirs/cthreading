@@ -32,8 +32,6 @@ def whispers(options):
 
     for i in benchlib.range(options.jobs):
         right.put(1)
-
-    for i in benchlib.range(options.jobs):
         n = leftmost.get()
         assert n == options.threads + 1
 
